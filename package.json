@@ -8,7 +8,7 @@
   "main": "main.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/0xtaim/brave.git"
+    "url": "https://github.com/0xtaim24/brave-arabic-games.git"
   },
   "scripts": {
     "assets": "node scripts/prepare-assets.js",
@@ -56,8 +56,8 @@
     },
     "publish": {
       "provider": "github",
-      "owner": "0xtaim",
-      "repo": "brave",
+      "owner": "0xtaim24",
+      "repo": "brave-arabic-games",
       "releaseType": "release"
     }
   }
