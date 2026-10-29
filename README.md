@@ -66,7 +66,7 @@ copy dist\supertts.exe ..\plugin\dist\
 
 **Releasing an update**
 
-1. Change `build.publish.owner/repo` and `repository.url` in `package.json` to your GitHub repo.
+1. `build.publish.owner/repo` and `repository.url` in `package.json` point to this repo (change them if you fork).
 2. Bump `version` in `package.json`, commit, then `git tag v1.0.1 && git push --tags`.
 3. The `release` workflow builds the installer and attaches it (with `latest.yml`) to a GitHub Release. Installed copies of brave pick it up on next launch.
 
