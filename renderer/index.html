@@ -1,0 +1,198 @@
+﻿<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; font-src 'self'">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>brave</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="titlebar" aria-hidden="true"><span id="versionChip" class="chip chip-ghost"></span></div>
+
+  <div class="shell">
+    <!-- ───────── sidebar ───────── -->
+    <aside class="side">
+      <div class="brand">
+        <div class="brand-logo"><img src="../assets/logo.png" alt="brave"></div>
+        <div>
+          <div class="brand-name">brave</div>
+          <div class="brand-sub">تعريب Scam With Your Friends</div>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="التنقل">
+        <button class="nav-item active" data-tab="home"><i class="ic" data-i="house"></i><span>الرئيسية</span></button>
+        <button class="nav-item" data-tab="strings"><i class="ic" data-i="pencil-line"></i><span>تعديل النصوص</span></button>
+        <button class="nav-item" data-tab="about"><i class="ic" data-i="info"></i><span>حول</span></button>
+      </nav>
+
+      <div class="side-foot">
+        <div id="updateBox" class="update" hidden>
+          <div class="update-row"><i class="ic" data-i="download"></i><span id="updateText"></span></div>
+          <div class="bar" id="updateBar" hidden><i></i></div>
+          <button id="btnUpdate" class="btn btn-small btn-solid" hidden>أعد التشغيل للتحديث</button>
+        </div>
+        <button id="btnHelp" class="help">
+          <span class="help-ic"><i class="ic" data-i="life-buoy"></i></span>
+          <span class="help-t"><b>تحتاج مساعدة؟</b><small>سيرفر الديسكورد</small></span>
+          <i class="ic ic-s" data-i="external-link"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ───────── content ───────── -->
+    <main class="main" id="main">
+      <!-- HOME -->
+      <section id="home" class="page active">
+        <div class="hero reveal" style="--d:0">
+          <div class="hero-copy">
+            <span class="chip" id="gameChip"><i class="dot"></i><span>جاري البحث عن اللعبة…</span></span>
+            <h1>اللعبة بالعربي<br><em>بأفضل صوت وفهم</em></h1>
+            <p class="lead">ترجمة كاملة، متصلون يتكلمون بلهجتك، وتعرّف أدق على كلامك. كل شي بضغطة وحدة.</p>
+
+            <div class="cta-row">
+              <button id="btnApply" class="btn btn-primary" disabled>
+                <i class="ic" data-i="rocket"></i><span id="applyLabel">تطبيق التحسينات</span>
+              </button>
+              <button id="btnRestore" class="btn btn-ghost" disabled><i class="ic" data-i="undo-2"></i><span>استرجاع الأصلي</span></button>
+            </div>
+
+            <div id="progress" class="progress" hidden>
+              <div class="bar"><i id="progressFill"></i></div>
+              <div class="progress-line"><i class="ic spin" data-i="loader-circle"></i><span id="progressText">جاري التجهيز…</span></div>
+            </div>
+            <div id="result" class="result" hidden></div>
+          </div>
+
+          <div class="hero-art" aria-hidden="true">
+            <div class="ring ring-a"></div><div class="ring ring-b"></div>
+            <div class="lion"><img src="../assets/logo.png" alt=""></div>
+          </div>
+        </div>
+
+        <div id="banner" class="banner reveal" style="--d:1" hidden>
+          <i class="ic" data-i="triangle-alert"></i>
+          <div><b>تحديث جديد للعبة</b><span>ملفاتها تغيّرت، طبّق التحسينات من جديد.</span></div>
+          <button id="btnReapply" class="btn btn-small btn-solid">طبّق الآن</button>
+        </div>
+
+        <div class="toolbar reveal" style="--d:1">
+          <div class="path"><i class="ic" data-i="gamepad-2"></i><input id="gamePath" type="text" dir="ltr" readonly placeholder="مجلد اللعبة"></div>
+          <button id="btnFind" class="btn btn-ghost btn-small"><i class="ic" data-i="scan-search"></i><span>بحث تلقائي</span></button>
+          <button id="btnBrowse" class="btn btn-ghost btn-small"><i class="ic" data-i="folder-open"></i><span>اختيار</span></button>
+          <button id="btnAnalyze" class="btn btn-ghost btn-small" disabled><i class="ic" data-i="wand-sparkles"></i><span>ضبط تلقائي لجهازي</span></button>
+        </div>
+        <p id="analyzeMsg" class="note" hidden></p>
+
+        <div class="grid">
+          <section class="group reveal" style="--d:2">
+            <header><i class="ic" data-i="languages"></i><h2>النصوص</h2></header>
+            <label class="row"><div><b>ترجمة اللعبة</b><small>يكمل الناقص ويصحح الترجمة، مع تعديلاتك الخاصة.</small></div><input type="checkbox" class="sw" id="optText"></label>
+            <label class="row"><div><b>إصلاح الحروف المعكوسة</b><small>يوصّل الحروف ويرتّبها صح في المال والأزرار والعدّادات.</small></div><input type="checkbox" class="sw" id="optFix"></label>
+          </section>
+
+          <section class="group reveal" style="--d:3">
+            <header><i class="ic" data-i="bot"></i><h2>المتصلون</h2></header>
+            <label class="row"><div><b>ردود بالعربي</b><small>يخلي الذكاء الاصطناعي يتكلم عربي طبيعي ويخمّن قصدك.</small></div><input type="checkbox" class="sw" id="optPrompts"></label>
+            <label class="row"><div><b>ردود قصيرة</b><small>جملة وحدة قصيرة: صوت أسرع وتأخير أقل.</small></div><input type="checkbox" class="sw" id="optShort"></label>
+            <div class="row row-field"><div><b>اللهجة</b></div>
+              <select id="dialect">
+                <option value="msa">فصحى مبسّطة</option>
+                <optgroup label="الخليج">
+                  <option value="gulf_saudi">سعودي</option>
+                  <option value="gulf_khaleeji">خليجي (كويتي / إماراتي / قطري)</option>
+                </optgroup>
+                <option value="iraqi">عراقي</option>
+                <optgroup label="الشام">
+                  <option value="levant_syrian">سوري</option>
+                  <option value="levant_lebanese">لبناني</option>
+                  <option value="levant_jordan">أردني / فلسطيني</option>
+                </optgroup>
+                <option value="egypt">مصري</option>
+                <option value="sudan">سوداني</option>
+                <optgroup label="المغرب العربي">
+                  <option value="morocco">مغربي</option>
+                  <option value="algeria">جزائري</option>
+                  <option value="tunisia">تونسي</option>
+                </optgroup>
+              </select>
+            </div>
+          </section>
+
+          <section class="group reveal" style="--d:4">
+            <header><i class="ic" data-i="audio-lines"></i><h2>الصوت</h2></header>
+            <label class="row"><div><b>صوت ذكاء اصطناعي سريع</b><small>10 أصوات رجالية ونسائية، محلي ومجاني. يحمّل نموذجاً مرة وحدة.</small></div><input type="checkbox" class="sw" id="optTts"></label>
+            <label class="row"><div><b>صوت أسلس</b><small>يخزّن جزءاً من الكلام قبل التشغيل لتفادي التقطيع.</small></div><input type="checkbox" class="sw" id="optBuffer"></label>
+            <div class="row row-field"><div><b>وقت التخزين</b></div>
+              <select id="bufferSeconds">
+                <option value="0.8">أسرع رد</option>
+                <option value="1">متوازن</option>
+                <option value="10">نقي (بعد اكتمال الجملة)</option>
+              </select>
+            </div>
+          </section>
+
+          <section class="group reveal" style="--d:5">
+            <header><i class="ic" data-i="mic"></i><h2>التعرف على كلامك</h2></header>
+            <label class="row"><div><b>تعرف أدق (عربي + إنجليزي)</b><small>Whisper محلي على المعالج، يفهم الكلمات الإنجليزية الشائعة. أسرع بكثير من Whisper اللعبة.</small></div><input type="checkbox" class="sw" id="optStt"></label>
+          </section>
+
+          <section class="group reveal" style="--d:6">
+            <header><i class="ic" data-i="gauge"></i><h2>الأداء</h2></header>
+            <div class="row row-field"><div><b>خيوط صوت اللعبة</b><small>للمعالج حقك. «ضبط تلقائي» يختار الأنسب.</small></div>
+              <select id="threads"><option value="0">الافتراضي</option><option value="6">6</option><option value="8">8</option><option value="10">10</option><option value="12">12</option></select>
+            </div>
+            <label class="row"><div><b>تسريع تحميل النماذج</b><small>ينسخ نموذج الصوت للقرص الرئيسي. مفيد لو اللعبة على قرص بطيء (USB).</small></div><input type="checkbox" class="sw" id="optFast"></label>
+            <label class="row"><div><b>إعادة التطبيق تلقائياً</b><small>بعد تحديث اللعبة من Steam، يطبّق التحسينات أول ما تفتح البرنامج.</small></div><input type="checkbox" class="sw" id="optAuto"></label>
+          </section>
+        </div>
+
+        <details class="logbox reveal" style="--d:6">
+          <summary><i class="ic" data-i="file-text"></i><span>سجل العمليات</span><i class="ic ic-s chev" data-i="chevron-down"></i></summary>
+          <pre id="log" dir="ltr"></pre>
+        </details>
+      </section>
+
+      <!-- STRINGS -->
+      <section id="strings" class="page">
+        <div class="page-head"><h1>تعديل النصوص</h1><p class="lead">عدّل أي ترجمة، احفظها، وتنطبق مع كل تطبيق.</p></div>
+        <div class="toolbar">
+          <div class="path"><i class="ic" data-i="search"></i><input id="search" type="search" placeholder="ابحث بالإنجليزي أو العربي أو المفتاح…"></div>
+          <select id="tableFilter"><option value="all">كل الجداول</option><option value="Menu">Menu</option><option value="Controls">Controls</option></select>
+          <label class="chk"><input type="checkbox" id="onlyMissing" class="sw sw-s"><span>الناقصة فقط</span></label>
+          <button id="btnLoad" class="btn btn-ghost btn-small"><i class="ic" data-i="refresh-cw"></i><span>تحميل</span></button>
+          <button id="btnSaveStrings" class="btn btn-solid btn-small" disabled><i class="ic" data-i="save"></i><span>حفظ</span></button>
+        </div>
+        <p id="stringsMsg" class="note">حدد مجلد اللعبة من الرئيسية ثم اضغط «تحميل».</p>
+        <div id="rows" class="rows"></div>
+      </section>
+
+      <!-- ABOUT -->
+      <section id="about" class="page">
+        <div class="page-head"><h1>حول brave</h1><p class="lead">أداة مجتمعية لتعريب Scam With Your Friends، تعدّل نسختك المثبّتة فقط ولا تحتوي أي ملفات من اللعبة.</p></div>
+        <div class="about-grid">
+          <div class="group">
+            <header><i class="ic" data-i="shield-check"></i><h2>أمان</h2></header>
+            <p class="plain">كل تعديل له نسخة احتياطية في <code dir="ltr">ArabicPatcher_Backup</code> داخل مجلد اللعبة، وزر «استرجاع الأصلي» يرجّع كل شي. إذا اللعبة تحدّثت، البرنامج يكتشف ذلك ويأخذ نسخة جديدة.</p>
+          </div>
+          <div class="group">
+            <header><i class="ic" data-i="heart"></i><h2>مكوّنات مجانية ومفتوحة</h2></header>
+            <p class="plain">Supertonic (الصوت)، faster-whisper (التعرف)، UnityPy وMono.Cecil (التعديل)، Electron. التفاصيل في ملف THIRD_PARTY.md.</p>
+          </div>
+          <div class="group group-wide">
+            <header><i class="ic" data-i="life-buoy"></i><h2>الدعم</h2></header>
+            <p class="plain">أي مشكلة أو اقتراح؟ تعال سيرفر الديسكورد.</p>
+            <button id="btnHelp2" class="btn btn-primary"><i class="ic" data-i="external-link"></i><span>انضم إلى الديسكورد</span></button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="dev-mock.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

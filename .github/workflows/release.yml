@@ -1,0 +1,45 @@
+name: release
+
+# Push a tag like v1.0.1 and this builds the installer and publishes it as a GitHub Release.
+# brave (installed copies) then download the update automatically (electron-updater reads latest.yml).
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: engine/requirements.txt
+
+      - name: Build the patch engine and the voice/recognition helper
+        shell: pwsh
+        run: |
+          python -m pip install -r engine/requirements.txt pyinstaller
+          cd engine
+          pyinstaller --noconfirm --onefile --name patcher --collect-all UnityPy patcher.py
+          pyinstaller --noconfirm --onefile --name supertts --collect-all supertonic --collect-all onnxruntime --collect-all faster_whisper --collect-all ctranslate2 --collect-all av supertts.py
+          Copy-Item dist/supertts.exe ../plugin/dist/supertts.exe
+
+      - name: Install app dependencies
+        run: npm ci
+
+      - name: Build and publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release

@@ -1,0 +1,64 @@
+{
+  "name": "brave",
+  "productName": "brave",
+  "version": "1.0.0",
+  "description": "Arabic translation, voice and speech recognition for Scam With Your Friends",
+  "author": "brave",
+  "license": "MIT",
+  "main": "main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0xtaim/brave.git"
+  },
+  "scripts": {
+    "assets": "node scripts/prepare-assets.js",
+    "start": "npm run assets && electron .",
+    "pack": "npm run assets && electron-builder --win --dir",
+    "dist": "npm run assets && electron-builder --win --publish never",
+    "release": "npm run assets && electron-builder --win --publish always"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11"
+  },
+  "devDependencies": {
+    "@fontsource/ibm-plex-sans-arabic": "^5.3.0",
+    "@fontsource/tajawal": "^5.3.0",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "lucide-static": "^1.64.0"
+  },
+  "build": {
+    "appId": "gg.brave.arabic",
+    "productName": "brave",
+    "copyright": "brave",
+    "icon": "assets/icon.png",
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**",
+      "assets/**"
+    ],
+    "extraResources": [
+      { "from": "engine/dist/patcher.exe", "to": "engine/patcher.exe" },
+      { "from": "data/overrides.ar.json", "to": "data/overrides.ar.json" },
+      { "from": "plugin/dist", "to": "fix" }
+    ],
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [ "nsis" ],
+      "artifactName": "brave-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false,
+      "shortcutName": "brave"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "0xtaim",
+      "repo": "brave",
+      "releaseType": "release"
+    }
+  }
+}
