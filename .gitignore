@@ -1,0 +1,13 @@
+node_modules/
+/dist/
+engine/.venv/
+engine/build/
+engine/dist/
+engine/__pycache__/
+engine/*.spec
+renderer/vendor/
+samples/
+plugin/build/
+# built in CI / locally, too large for git
+plugin/dist/supertts.exe
+*.log

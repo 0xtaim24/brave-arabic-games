@@ -1,0 +1,5 @@
+UnityPy==1.25.4
+dnfile
+supertonic
+faster-whisper
+numpy
