@@ -12,6 +12,12 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if ((args.Length == 3 || args.Length == 4) && args[0] == "portrait")
+        {
+            ResolveDir = args.Length == 4 ? args[3] : null;
+            try { PatchPortrait(args[1], args[2]); Console.WriteLine("OK"); return 0; }
+            catch (Exception e) { Console.Error.WriteLine("ERROR: " + e.Message); return 1; }
+        }
         if (args.Length == 3 && args[0] == "stt")
         {
             // usage: ArabicPatch stt <ArabicFix.dll> <ScriptsAssDef.dll>   (patched in place)
@@ -47,6 +53,38 @@ internal static class Program
 
     private static string ResolveDir;
 
+    private static void PatchPortrait(string fixPath, string dllPath)
+    {
+        var fix = AssemblyDefinition.ReadAssembly(fixPath).MainModule.GetType("ArabicFix.Portrait");
+        var asm = Open(dllPath, Path.GetDirectoryName(dllPath));
+        var module = asm.MainModule;
+        var type = module.GetType("Kolkata.UI.KolkataOsCallerWebcamPresenter");
+        if (type == null) throw new Exception("This game version has no supported portrait presenter");
+        var bind = type.Methods.First(x => x.Name == "TryBind" && x.Parameters.Count == 6);
+        if (bind.Body.Instructions.Any(x => x.Operand is MethodReference && ((MethodReference)x.Operand).DeclaringType.FullName == "ArabicFix.Portrait")) throw new Exception("Portrait already patched");
+        var target = module.ImportReference(fix.Methods.First(x => x.Name == "Bind"));
+        bind.Body.SimplifyMacros();var il=bind.Body.GetILProcessor();
+        foreach (var ret in bind.Body.Instructions.Where(x=>x.OpCode==OpCodes.Ret).ToArray())
+        {
+            // Preserve the original bool result, including branches directly targeting ret.
+            ret.OpCode=OpCodes.Dup;
+            var a=il.Create(OpCodes.Ldarg_0);il.InsertAfter(ret,a);
+            var b=il.Create(OpCodes.Ldarg_1);il.InsertAfter(a,b);
+            var call=il.Create(OpCodes.Call,target);il.InsertAfter(b,call);il.InsertAfter(call,il.Create(OpCodes.Ret));
+        }
+        bind.Body.OptimizeMacros();
+        foreach (string name in new[]{"SetMouthOpen","Dispose"})
+        {
+            var method=type.Methods.First(x=>x.Name==name);method.Body.SimplifyMacros();
+            var body=method.Body.GetILProcessor();var first=method.Body.Instructions[0];
+            body.InsertBefore(first,body.Create(OpCodes.Ldarg_0));
+            if(name=="SetMouthOpen")body.InsertBefore(first,body.Create(OpCodes.Ldarg_1));
+            body.InsertBefore(first,body.Create(OpCodes.Call,module.ImportReference(fix.Methods.First(x=>x.Name==(name=="Dispose"?"Unbind":"Mouth")))));
+            method.Body.OptimizeMacros();
+        }
+        Save(asm,dllPath);
+    }
+
     // WhisperVcPipeline.ConfigureRecognizer(recognizer, code): call ArabicFix.Stt.Configure before returning
     private static void PatchStt(string fixPath, string dllPath)
     {
@@ -64,6 +102,16 @@ internal static class Program
         il.InsertBefore(ret, il.Create(OpCodes.Ldarg_1));
         il.InsertBefore(ret, il.Create(OpCodes.Call, cfgRef));
         m.Body.OptimizeMacros();
+
+        // WhisperVcPipeline.ApplyCallLanguage(code): tune the pipeline's speech-detection windows from ArabicFix.ini
+        var tune = module.ImportReference(fixAsm.MainModule.GetType("ArabicFix.Stt").Methods.First(w => w.Name == "TunePipeline"));
+        var acl = type.Methods.First(x => x.Name == "ApplyCallLanguage" && x.Parameters.Count == 1);
+        acl.Body.SimplifyMacros();
+        var afirst = acl.Body.Instructions[0];
+        var ail = acl.Body.GetILProcessor();
+        ail.InsertBefore(afirst, ail.Create(OpCodes.Ldarg_0));
+        ail.InsertBefore(afirst, ail.Create(OpCodes.Call, tune));
+        acl.Body.OptimizeMacros();
 
         // ArmSpeechWorkerClient.TranscribeAsync(model, language, samples, token): answer Arabic with the local helper
         var sttType = fixAsm.MainModule.GetType("ArabicFix.Stt");

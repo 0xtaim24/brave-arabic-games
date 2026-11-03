@@ -1,0 +1,15 @@
+{
+  "sources": {
+    "plugin/ArabicFix.cs": "59d09410d6babb8441ec17e03cd50e65e1b31b8eaa0060e7aef4525df10b771d",
+    "plugin/ArabicPatch.cs": "5b72d27c26cd5e3a53c911657cac11755288420116226f328cfa391ebad6fbf7",
+    "plugin/ArabicPortrait.cs": "1e9cfea9ff89a8d0dfa149f063d560214a50d03180427fb737ee626d2b651118",
+    "plugin/ArabicStt.cs": "ef1576ccf482ebc4d0fb0c12ff8bd44c9e4b5acb73ca14c7a8a74b919c26f00c",
+    "plugin/ArabicTts.cs": "b90910eda71fd8d2552a8a94f8fcd900658121d55cea5747d92347960c1f5c74"
+  },
+  "artifacts": {
+    "plugin/dist/ArabicFix.dll": "32105eef96d6658dbdf6e1d37888c8450b996de7a5193c3cb96c3cb9ef318409",
+    "plugin/dist/ArabicPatch.exe": "afcecb2960faaff51573e397747a302f51ccc33ff97aea6557a1bd43d26b5753",
+    "plugin/dist/Mono.Cecil.dll": "7ae470288fff4a402899c254d0a76cefef55877f5c54f96e83c797cc5bb6e2f6",
+    "plugin/dist/Mono.Cecil.Rocks.dll": "54ac539fb5ddc8b44c0e9acd0fcb7324f89d1a072edf8ebc1b06dd691e3d3927"
+  }
+}

@@ -1,5 +1,9 @@
 UnityPy==1.25.4
-dnfile
-supertonic
-faster-whisper
-numpy
+dnfile==0.18.0
+supertonic==1.3.1
+faster-whisper==1.2.1
+ctranslate2==4.8.5
+numpy==2.5.4
+av==19.0.2
+onnxruntime==1.31.1
+transcribe-cpp @ https://github.com/handy-computer/transcribe.cpp/releases/download/v0.4.1/transcribe_cpp-0.4.1-py3-none-any.whl#sha256=f373b6e20a4d897ed0dcaa2fe7fae183379777432b3a76641c42506c77b442ad

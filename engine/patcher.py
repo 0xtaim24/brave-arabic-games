@@ -12,6 +12,7 @@ import glob
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 import subprocess
@@ -94,6 +95,7 @@ def paths(game):
         "tmp_dll": os.path.join(data, "Managed", "Unity.TextMeshPro.dll"),
         "uitk_dll": os.path.join(data, "Managed", "UnityEngine.UIElementsModule.dll"),
         "scripts_dll": os.path.join(data, "Managed", "ScriptsAssDef.dll"),
+        "portrait_dll": os.path.join(data, "Managed", "Assembly-CSharp.dll"),
         "fix_dll": os.path.join(data, "Managed", "ArabicFix.dll"),
     }
 
@@ -173,7 +175,7 @@ def load_manifest(game):
 
 
 def tracked_files(p):
-    return (p["ar_tables"], p["prompt"], p["catalog"], p["moss_dll"], p["tmp_dll"], p["uitk_dll"], p["scripts_dll"])
+    return (p["ar_tables"], p["prompt"], p["catalog"], p["moss_dll"], p["tmp_dll"], p["uitk_dll"], p["scripts_dll"], p["portrait_dll"])
 
 
 def ensure_backup(game, p):
@@ -262,39 +264,9 @@ def build_prompts(src_json, dialect, extra, short=False):
     with open(src_json, encoding="utf8") as f:
         d = json.load(f)
     style, words = DIALECTS.get(dialect, DIALECTS["msa"])
-    flavour = (" Typical words of this dialect: " + words + ".") if words else ""
-    arabic = (
-        " If the language is Arabic (ar): talk like a real person on a phone call, in " + style + ". "
-        "Stay consistently in this one dialect." + flavour + " Use natural, everyday spoken phrasing the way people actually talk, never stiff or machine-translated wording. "
-        "Use correct grammar and gender agreement, short sentences, and write only in Arabic script "
-        "(never Latin letters or Arabizi). Write numbers, prices and letters as Arabic words so the voice reads them well. "
-        "Keep names, brands and gameplay tokens such as [[...]] exactly as they are. "
-        "Use the Arabic comma ، and question mark ؟. "
-        "Never use diacritics (tashkeel), tatweel or stretched letters (write سوّي as سوي, never سُوووويييي), "
-        "and no emoji: they break the voice. Answer exactly what the player just said, stay in character, "
-        "and never repeat the same sentence twice. "
-        "The player's words come from an imperfect speech recognizer, so some Arabic words may be wrong, "
-        "misspelled or sound-alike. Work out what the player most likely meant from the conversation so far "
-        "and answer that naturally; never mention transcription errors or repeat their garbled words. "
-        "Only if the message is truly meaningless, ask very briefly to repeat."
-    )
-    if short:
-        arabic += (
-            " IMPORTANT for voice speed: every reply must be ONE short sentence of at most 7 words, "
-            "never more than two very short sentences. Long replies make the voice lag, so be brief and punchy."
-        )
-    if extra and extra.strip():
-        arabic += " Extra style notes: " + extra.strip()
-    d.setdefault("turn", {})["language"] = "Speak {language} from now on." + arabic
-    rep = d.setdefault("repair", {})
-    rep["language"] = (
-        "Write all dialogue in {language}. Preserve the JSON fields, gameplay tokens and the caller's meaning."
-        + arabic
-    )
-    fpm = d.get("firstPlayerMessages")
-    if isinstance(fpm, dict):
-        fpm["ar"] = "مرحبًا، لماذا تتصل بي؟"
-    return d
+    from dialogue_rules import adapt_prompts
+    return adapt_prompts(d, style, words, extra, short)
+
 
 
 def patch_moss_threads(src_dll, threads):
@@ -388,8 +360,19 @@ def install_helper(source, target_dir):
         raise RuntimeError("Helper not found: " + src)
     os.makedirs(target_dir, exist_ok=True)
     dst = os.path.join(target_dir, "supertts.exe")
-    if not os.path.exists(dst) or os.path.getsize(dst) != os.path.getsize(src):
+    if not os.path.exists(dst) or sha256(dst) != sha256(src):
         shutil.copy2(src, dst)
+    # Keep optional native runtimes outside the game's managed assemblies.
+    for folder in ('stt-native', 'character-native', 'licenses'):
+        native = os.path.join(source, folder)
+        if os.path.isdir(native):
+            for root, _, files in os.walk(native):
+                target = os.path.join(target_dir, folder, os.path.relpath(root, native))
+                os.makedirs(target, exist_ok=True)
+                for filename in files:
+                    source_file, target_file = os.path.join(root, filename), os.path.join(target, filename)
+                    if not os.path.exists(target_file) or sha256(source_file) != sha256(target_file):
+                        shutil.copy2(source_file, target_file)
     return dst
 
 
@@ -490,6 +473,209 @@ def set_speech_provider(value):
     return True
 
 
+
+# ---------------------------------------------------------------- model registry
+STT_MODELS = [
+    {"id": "cohere-ar-q5", "name": "Cohere Arabic · متوازن", "size_mb": 1770, "rank": 6, "desc": "متخصص بالعربية واللهجات، يعمل محليًا على كروت NVIDIA وAMD وIntel المتوافقة أو المعالج؛ اختبره بصوتك", "repo": "handy-computer/cohere-transcribe-arabic-07-2026-gguf"},
+    {"id": "cohere-ar-q8", "name": "Cohere Arabic · للأجهزة القوية", "size_mb": 2410, "rank": 7, "desc": "نسخة أكبر للأجهزة القوية؛ قارنها بالمتوازن على صوتك، فهي لا تضمن كلمات أدق في كل جملة", "repo": "handy-computer/cohere-transcribe-arabic-07-2026-gguf"},
+    {"id": "qwen-ar-light", "name": "Qwen ASR · خفيف", "size_mb": 850, "rank": 4.5, "desc": "بديل أخف للمحادثات القصيرة على المعالج. دقة اللهجات متفاوتة؛ جرّبه على نفس تسجيلك", "repo": "handy-computer/Qwen3-ASR-0.6B-gguf"},
+    {"id": "tiny", "name": "Whisper tiny", "size_mb": 75, "rank": 1, "desc": "الأسرع، دقته أقل", "repo": "Systran/faster-whisper-tiny"},
+    {"id": "base", "name": "Whisper base", "size_mb": 145, "rank": 2, "desc": "سريع ودقته مقبولة", "repo": "Systran/faster-whisper-base"},
+    {"id": "small", "name": "Whisper small", "size_mb": 480, "rank": 3, "desc": "بديل متوازن من Whisper؛ قارن اللهجة والسرعة على جهازك", "repo": "Systran/faster-whisper-small"},
+    {"id": "medium", "name": "Whisper medium", "size_mb": 1500, "rank": 4, "desc": "جودة أعلى محتملة؛ اختبر السرعة على جهازك أولًا", "repo": "Systran/faster-whisper-medium"},
+    {"id": "large-v3-turbo", "name": "Whisper large-v3-turbo", "size_mb": 810, "rank": 5, "desc": "للدقة الأعلى مع تسريع NVIDIA؛ قد يكون بطيئًا على المعالج", "repo": "mobiuslabsgmbh/faster-whisper-large-v3-turbo"},
+]
+TTS_TIERS = [
+    {"id": "fast", "steps": 5, "name": "سريع"},
+    {"id": "balanced", "steps": 8, "name": "متوازن (الافتراضي)"},
+    {"id": "high", "steps": 12, "name": "عالي"},
+    {"id": "ultra", "steps": 16, "name": "أعلى جودة"},
+]
+STT_RTF_LIMIT = 0.3   # a ~10 s sentence must be recognised in under ~3 s, or the call feels laggy
+TTS_RTF_LIMIT = 0.45  # voice generation must run at least 2.2x faster than speech
+
+
+def hf_cache_dirs():
+    base = os.environ.get("HF_HOME") or os.path.join(os.path.expanduser("~"), ".cache", "huggingface")
+    return [os.path.join(base, "hub")]
+
+
+def stt_repo(model_id):
+    """Hugging Face repo behind a model id: a registry id, or a custom 'owner/name'. Local folders have none."""
+    for m in STT_MODELS:
+        if m["id"] == model_id:
+            return m["repo"]
+    return model_id if re.fullmatch(r"[\w.-]+/[\w.-]+", model_id or "") and not os.path.isdir(model_id) else None
+
+
+def hf_dirname(repo):
+    return "models--" + repo.replace("/", "--")
+
+
+def stt_installed(model_id):
+    from stt_catalog import MODELS, installed
+    if model_id in MODELS:
+        return installed(model_id)
+    repo = stt_repo(model_id)
+    return bool(repo) and any(os.path.isdir(os.path.join(d, hf_dirname(repo))) for d in hf_cache_dirs())
+
+
+def _models_state_path():
+    return os.path.join(os.path.dirname(hf_cache_dirs()[0]), "brave-models.json")
+
+
+def _rmtree(path):
+    def retry(fn, p, _exc):
+        os.chmod(p, 0o700)
+        fn(p)
+    shutil.rmtree(path, onerror=retry)
+
+
+def remember_stt_model(repo):
+    """Remember which repos the app downloaded, so custom models can be cleaned up later too."""
+    if not repo:
+        return
+    try:
+        p = _models_state_path()
+        seen = json.load(open(p, encoding="utf-8")).get("downloaded", []) if os.path.exists(p) else []
+        if repo not in seen:
+            json.dump({"downloaded": seen + [repo]}, open(p, "w", encoding="utf-8"))
+    except (OSError, ValueError):
+        pass
+
+
+def prune_stt_models(keep_repo):
+    """Delete every recognition model this app downloaded except the one in use. Only 'models--*' folders of the app's own
+    registry or download list are touched, never anything else in the Hugging Face cache. Returns [(repo, MB freed)]."""
+    known = {m["repo"] for m in STT_MODELS}
+    try:
+        p = _models_state_path()
+        if os.path.exists(p):
+            known |= set(json.load(open(p, encoding="utf-8")).get("downloaded", []))
+    except (OSError, ValueError):
+        pass
+    removed = []
+    for base in hf_cache_dirs():
+        for repo in sorted(known):
+            if repo == keep_repo:
+                continue
+            d = os.path.join(base, hf_dirname(repo))
+            if not os.path.isdir(d):
+                continue
+            size = sum(os.path.getsize(os.path.join(r, f)) for r, _, fs in os.walk(d) for f in fs if os.path.isfile(os.path.join(r, f)))
+            try:
+                _rmtree(d)
+                lock = os.path.join(base, ".locks", hf_dirname(repo))
+                if os.path.isdir(lock):
+                    _rmtree(lock)
+                removed.append((repo, round(size / 1048576)))
+            except OSError as e:
+                log(f"Could not remove old model {repo}: {e}")
+    try:
+        p = _models_state_path()
+        if keep_repo:
+            json.dump({"downloaded": [keep_repo]}, open(p, "w", encoding="utf-8"))
+    except OSError:
+        pass
+    return removed
+
+
+def helper_env(extra=None):
+    env = dict(os.environ)
+    env["PYTHONUTF8"] = "1"
+    env["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+    env.update(extra or {})
+    return env
+
+
+def run_helper(helper, flag, env_extra, timeout=1800):
+    r = subprocess.run([helper, flag], capture_output=True, text=True, encoding="utf-8", env=helper_env(env_extra), timeout=timeout)
+    if r.returncode != 0:
+        raise RuntimeError((r.stderr or r.stdout).strip()[-300:] or "helper failed")
+    line = [ln for ln in r.stdout.splitlines() if ln.startswith("OK ")]
+    return json.loads(line[-1][3:]) if line and line[-1][3:].lstrip().startswith("{") else {}
+
+
+def bench_env(a, extra=None):
+    base = {"ARABICAI_BENCH_WAV": os.path.join(a.data_dir, "bench-ar.wav"), "ARABICAI_BENCH_TEXT": os.path.join(a.data_dir, "bench-ar.txt")}
+    base.update(extra or {})
+    return base
+
+
+def cmd_models(a):
+    out({"type": "result", "ok": True,
+         "stt": [dict(m, installed=stt_installed(m["id"])) for m in STT_MODELS],
+         "tts": TTS_TIERS})
+
+
+def cmd_model_install(a):
+    env = {"ARABICAI_STT_MODEL": a.model}
+    log(f"Downloading speech model {a.model}…")
+    run_helper(a.helper, "--download-stt", env)
+    keep = stt_repo(a.model)
+    remember_stt_model(keep)
+    # Other installed models remain available for offline A/B testing.
+    out({"type": "result", "ok": True, "model": a.model})
+
+
+def cmd_models_auto(a):
+    """Pick the best speech-recognition model and voice quality this PC can run in real time, downloading only what is needed."""
+    logical = os.cpu_count() or 4
+    result = {"stt": None, "tts_steps": 8, "bench": {}, "profile": "arabic-local-v2"}
+
+    # voice: measure at the default quality, extrapolate the others (generation time grows with the number of steps)
+    log("Testing the Arabic voice speed…")
+    t = run_helper(a.helper, "--bench-tts", bench_env(a, {"ARABICAI_TTS_STEPS": "8"}))
+    rtf8 = t["rtf"]
+    result["bench"]["tts"] = t
+    chosen = TTS_TIERS[0]
+    for tier in TTS_TIERS:
+        if rtf8 * tier["steps"] / 8.0 <= TTS_RTF_LIMIT:
+            chosen = tier
+    result["tts_steps"] = chosen["steps"]
+    result["tts_tier"] = chosen["id"]
+
+    # recognition: start from "small", go up on a fast CPU, down on a slow one
+    def bench(model):
+        log(f"Testing speech recognition model {model} (downloads it the first time)…")
+        r = run_helper(a.helper, "--bench-stt", bench_env(a, {"ARABICAI_STT_MODEL": model, "ARABICAI_STT_THREADS": str(max(3, min(8, logical // 2)))}), timeout=3600)
+        result["bench"][model] = r
+        return r
+
+    # Start with Arabic-specific recognition. Download a lighter alternative only
+    # when needed; a different quantization is never downloaded automatically.
+    measured = {}
+    try:
+        measured["cohere-ar-q5"] = bench("cohere-ar-q5")
+    except Exception as exc:
+        log(f"Cohere unavailable: {exc}")
+    if not measured:
+        measured["small"] = bench("small")
+    for model in STT_MODELS:
+        name = model["id"]
+        if name not in measured and stt_installed(name):
+            try:
+                measured[name] = bench(name)
+            except Exception as exc:
+                log(f"Skipped {name}: {exc}")
+    from stt_selection import choose_model, is_conversational
+    if not any(is_conversational(v) for v in measured.values()):
+        for lighter in ("qwen-ar-light", "small", "base", "tiny"):
+            if lighter not in measured:
+                try:
+                    measured[lighter] = bench(lighter)
+                except Exception as exc:
+                    log(f"Skipped {lighter}: {exc}")
+                    continue
+            v = measured[lighter]
+            if is_conversational(v):
+                break
+    pick, reason = choose_model(measured)
+    result["selection_reason"] = reason
+    result["stt"] = pick
+    out(dict({"type": "result", "ok": True}, **result))
+
+
 def cmd_status(a):
     p = check_game(a.game)
     if not p:
@@ -569,6 +755,9 @@ def cmd_apply(a):
     ini = []
     scripts_backup = os.path.join(root, os.path.relpath(p["scripts_dll"], a.game))
     shutil.copy2(scripts_backup, p["scripts_dll"])
+    shutil.copy2(os.path.join(root, os.path.relpath(p["portrait_dll"], a.game)), p["portrait_dll"])
+    if a.fix or a.tts:
+        run_patch_tool(a.fix_source, ["portrait", os.path.join(a.fix_source, "ArabicFix.dll"), p["portrait_dll"]], p, a.game)
     if a.stt:
         log("Tuning Arabic speech recognition…")
         run_patch_tool(a.fix_source, ["stt", os.path.join(a.fix_source, "ArabicFix.dll"), p["scripts_dll"]], p, a.game)
@@ -577,10 +766,32 @@ def cmd_apply(a):
         if a.stt_helper:
             helper = install_helper(a.fix_source, tts_dir_path(p))
             log("Downloading the speech-recognition model (first time only)…")
-            r = subprocess.run([helper, "--download-stt"], capture_output=True, text=True)
+            r = subprocess.run([helper, "--download-stt"], capture_output=True, text=True, encoding="utf-8",
+                               env=helper_env({"ARABICAI_STT_MODEL": a.stt_model}))
             if r.returncode != 0:
                 raise RuntimeError("Recognition model download failed (check your internet): " + (r.stderr or r.stdout).strip()[-300:])
-            ini += ["stt_helper=" + helper, "stt_model=small", "stt_threads=" + str(a.stt_threads)]
+            # the new model loaded fine, so the old ones are not needed any more: free the disk space
+            keep = stt_repo(a.stt_model)
+            remember_stt_model(keep)
+            # Keep downloaded alternatives: users can switch offline without downloading again.
+            # time one known sentence so a model that is too slow for this PC is reported instead of silently lagging in game
+            try:
+                ddir = os.path.dirname(a.overrides[0]) if a.overrides else ""
+                if ddir and os.path.exists(os.path.join(ddir, "bench-ar.wav")):
+                    log("Checking speech recognition speed…")
+                    env_b = bench_env(argparse.Namespace(data_dir=ddir), {"ARABICAI_STT_MODEL": a.stt_model, "ARABICAI_STT_THREADS": str(a.stt_threads)})
+                    b = run_helper(helper, "--bench-stt", env_b, timeout=1800)
+                    result["stt_seconds"] = b.get("seconds")
+                    result["stt_cer"] = b.get("cer")
+                    log(f"Recognition speed: {b.get('seconds')} s for {b.get('audio_s')} s of speech")
+            except Exception as e:  # noqa: BLE001
+                log(f"Speed check skipped: {e}")
+            ini += ["stt_helper=" + helper, "stt_model=" + a.stt_model, "stt_threads=" + str(a.stt_threads),
+                    "stt_profile=" + a.stt_profile, "stt_preroll=" + str(a.stt_preroll), "stt_partials=" + str(a.stt_partials)]
+            if a.stt_silence > 0:
+                ini.append("stt_silence=" + str(a.stt_silence))
+            if a.stt_debug:
+                ini.append("stt_debug=1")
             result["stt_helper"] = True
             if set_speech_provider("Moonshine"):
                 log("Speech recognition setting switched to Moonshine (the game's own hook point)")
@@ -597,7 +808,20 @@ def cmd_apply(a):
         r = subprocess.run([helper, "--download"], capture_output=True, text=True)
         if r.returncode != 0:
             raise RuntimeError("Voice model download failed (check your internet): " + (r.stderr or r.stdout).strip()[-300:])
-        ini += ["tts=supertonic", "tts_exe=" + helper, "tts_voices=" + a.tts_voices, "tts_threads=" + str(a.tts_threads)]
+        voices = a.tts_voices.split(",")
+        voices_dir = ""
+        if a.voices_dir and os.path.isdir(a.voices_dir):
+            target = os.path.join(tts_dir, "voices")
+            os.makedirs(target, exist_ok=True)
+            for f in os.listdir(a.voices_dir):
+                if f.lower().endswith(".json"):
+                    shutil.copy2(os.path.join(a.voices_dir, f), os.path.join(target, f))
+                    voices.append(os.path.splitext(f)[0])
+            voices_dir = target
+        ini += ["tts=supertonic", "tts_exe=" + helper, "tts_voices=" + ",".join(voices), "tts_threads=" + str(a.tts_threads),
+                "tts_steps=" + str(a.tts_steps), "tts_gender=" + ("1" if a.tts_gender else "0")]
+        if voices_dir:
+            ini.append("tts_voices_dir=" + voices_dir)
         result["tts"] = True
     elif os.path.isdir(tts_dir) and not (a.stt and a.stt_helper):
         shutil.rmtree(tts_dir, ignore_errors=True)
@@ -734,6 +958,11 @@ def main():
             pass
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
+    for name in ("models", "models-auto", "model-install"):
+        sp = sub.add_parser(name)
+        sp.add_argument("--helper", default="")
+        sp.add_argument("--data-dir", default="")
+        sp.add_argument("--model", default="small")
     for name in ("detect", "status", "export", "apply", "restore", "analyze"):
         sp = sub.add_parser(name)
         sp.add_argument("--game", required=True)
@@ -750,11 +979,20 @@ def main():
             sp.add_argument("--stt", action="store_true")
             sp.add_argument("--stt-language", default="ar")
             sp.add_argument("--stt-helper", action="store_true")
-            sp.add_argument("--stt-threads", type=int, default=6)
-            sp.add_argument("--stt-prompt", default="مرحباً، أنا أتحدث بالعربية مع بعض الكلمات الإنجليزية مثل: subscription، gift card، credit card، password، Bitcoin، Steam، email، number، security code، OK، hello.")
+            sp.add_argument("--stt-threads", type=int, default=4)
+            sp.add_argument("--stt-profile", default="improved", help="improved | baseline (1.0.1 decoding) for A/B comparison")
+            sp.add_argument("--stt-preroll", type=float, default=0.4, help="seconds kept before the first detected speech frame")
+            sp.add_argument("--stt-silence", type=float, default=1.25, help="seconds of silence that end a sentence (0 = keep game setting)")
+            sp.add_argument("--stt-partials", type=float, default=0, help="seconds between live partial passes; 0 = off (partials compete with the real sentence for the CPU)")
+            sp.add_argument("--stt-debug", action="store_true", help="also log recognised text and keep the last 5 clips locally")
+            sp.add_argument("--stt-prompt", default="", help="optional text that biases recognition; empty by default (a word list makes the model say those words when it is unsure)")
             sp.add_argument("--tts", action="store_true")
             sp.add_argument("--tts-voices", default="M1,F1,M2,F2,M3,F3,M4,F4,M5,F5")
             sp.add_argument("--tts-threads", type=int, default=4)
+            sp.add_argument("--tts-steps", type=int, default=8)
+            sp.add_argument("--tts-gender", action=argparse.BooleanOptionalAction, default=True)
+            sp.add_argument("--stt-model", default="small")
+            sp.add_argument("--voices-dir", default="")
             sp.add_argument("--prebuffer-seconds", type=float, default=1.5)
             sp.add_argument("--fast-models", default="")
             sp.add_argument("--fix-source", default="")
@@ -762,7 +1000,8 @@ def main():
             sp.add_argument("--remove-backup", action="store_true")
     a = ap.parse_args()
     try:
-        {"detect": cmd_detect, "status": cmd_status, "export": cmd_export, "apply": cmd_apply, "restore": cmd_restore, "analyze": cmd_analyze}[a.cmd](a)
+        {"detect": cmd_detect, "status": cmd_status, "export": cmd_export, "apply": cmd_apply, "restore": cmd_restore, "analyze": cmd_analyze,
+         "models": cmd_models, "models-auto": cmd_models_auto, "model-install": cmd_model_install}[a.cmd](a)
     except SystemExit:
         raise
     except Exception as e:  # noqa: BLE001

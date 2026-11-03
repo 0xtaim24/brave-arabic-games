@@ -2,6 +2,8 @@ node_modules/
 /dist/
 engine/.venv/
 engine/build/
+engine/build-native/
+engine/build-character-native/
 engine/dist/
 engine/__pycache__/
 engine/*.spec
@@ -10,4 +12,8 @@ samples/
 plugin/build/
 # built in CI / locally, too large for git
 plugin/dist/supertts.exe
+plugin/dist/stt-native/
+plugin/dist/character-native/
 *.log
+promo/out/
+promo/shots/

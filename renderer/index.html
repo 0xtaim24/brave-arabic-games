@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; font-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; media-src blob:; img-src 'self' data:; font-src 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>brave</title>
   <link rel="stylesheet" href="style.css">
@@ -23,6 +23,9 @@
 
       <nav class="nav" aria-label="التنقل">
         <button class="nav-item active" data-tab="home"><i class="ic" data-i="house"></i><span>الرئيسية</span></button>
+        <button class="nav-item" data-tab="models"><i class="ic" data-i="cpu"></i><span>النماذج</span></button>
+        <button class="nav-item" data-tab="mic"><i class="ic" data-i="mic-vocal"></i><span>اختبار الميكروفون</span></button>
+        <button class="nav-item" data-tab="characters"><i class="ic" data-i="bot"></i><span>الشخصيات</span></button>
         <button class="nav-item" data-tab="strings"><i class="ic" data-i="pencil-line"></i><span>تعديل النصوص</span></button>
         <button class="nav-item" data-tab="about"><i class="ic" data-i="info"></i><span>حول</span></button>
       </nav>
@@ -43,6 +46,52 @@
 
     <!-- ───────── content ───────── -->
     <main class="main" id="main">
+      <section id="characters" class="page">
+        <div class="page-head"><h1>شخصياتك في اللعبة</h1><p class="lead">اختر الصورة، واكتب الطباع والخلفية، وحدد صوتًا ثابتًا للشخصية. احفظها وجرّب صوتها قبل إضافتها.</p></div>
+        <div class="character-layout">
+          <aside class="card character-library">
+            <header><i class="ic" data-i="bot"></i><h2>مكتبتي</h2></header>
+            <button id="charNew" class="btn btn-solid btn-small">شخصية جديدة</button>
+            <div id="charList" class="character-list"><p class="note">لا توجد شخصيات بعد.</p></div>
+            <div id="charTrialNotice" class="autocard" hidden><b>تجربة شخصية واحدة مفعّلة</b><small>تظهر الشخصية التجريبية في المكالمات. ارجع للقائمة المعتادة بعد التجربة.</small><button id="charRestoreTrial" class="btn btn-small btn-ghost">إرجاع المكالمات العادية</button></div>
+          </aside>
+          <div class="card character-editor">
+            <header><i class="ic" data-i="pencil-line"></i><h2 id="charHeading">شخصية جديدة</h2></header>
+            <div class="character-portrait-row">
+              <div class="character-portrait-picker"><img id="charPortrait" alt="معاينة صورة الشخصية" hidden><span id="charMouthMarker" hidden></span></div>
+              <div id="charPortraitEmpty" class="character-portrait-empty">صورة الشخصية</div>
+              <div><button id="charImage" class="btn btn-ghost btn-small">اختيار صورة PNG</button><p class="note">صورة مربعة وواضحة، حتى 8 ميجابايت.</p><label class="character-check"><input id="charFace" type="checkbox"> إضافة عيون وفم اللعبة فوق الصورة</label><small class="note">اتركها مغلقة إذا كانت الصورة تحتوي ملامح كاملة.</small></div>
+            </div>
+            <label class="character-check"><input id="charMouth" type="checkbox"> تحريك الفم المرسوم مع الكلام</label>
+            <label class="character-check"><input id="charBrief" type="checkbox"> ردود موجزة لمحادثة أسرع</label>
+            <div id="charMouthOptions" hidden><p class="note">اضغط وسط الفم في الصورة لتحديد مكان الحركة. يُحرّك الرسم نفسه بدون إضافة وجه آخر.</p><label class="note">عرض الفم <input id="charMouthWidth" type="range" min="0.1" max="0.6" step="0.01" value="0.32"></label></div>
+            <div class="character-fields">
+              <label>اسم الشخصية<input id="charName" class="field" maxlength="60" placeholder="مثل: سالم"></label>
+              <label>الجنس<select id="charGender"><option value="Male">رجل</option><option value="Female">امرأة</option><option value="Unspecified">غير محدد</option></select></label>
+              <label class="wide">الصفات وطريقة التعامل<textarea id="charTraits" class="field" rows="3" maxlength="900" placeholder="مثل: مرح وسريع البديهة، يحب المزاح، يتردد أمام الطلبات الغريبة ويقتنع بالتفسير الواضح."></textarea><small>اكتب كيف يتكلم ويتصرف، وما يحمّسه أو يزعجه.</small></label>
+              <label class="wide">الخلفية والاهتمامات<textarea id="charBackground" class="field" rows="2" maxlength="1600" placeholder="مثل: ستريمر خيالي يحب الألعاب والتحديات، ويبالغ في ثقته بنفسه للمزاح."></textarea><small>مهنة، هوايات، وتفاصيل يعرفها عن نفسه. لا تكتب تعليمات تغيّر قواعد اللعبة.</small></label>
+              <label>اللهجة<select id="charDialect"><option value="gulf_saudi">سعودية / خليجية</option><option value="msa">فصحى بسيطة</option><option value="levant">شامية</option><option value="egypt">مصرية</option><option value="iraqi">عراقية</option><option value="maghreb">مغاربية</option></select></label>
+              <label>الثقة في بداية المكالمة<input id="charTrust" class="field" type="number" min="10" max="80" value="40"><small>40 متحفظ، 60 أكثر تعاونًا.</small></label>
+              <label class="wide">أول جملة يقولها<input id="charOpening" class="field" maxlength="220" placeholder="أهلًا، كيف أقدر أساعدك؟"></label>
+              <label>طريقة الصوت<select id="charVoiceMode"><option value="preset">صوت جاهز وسريع</option><option value="clone">صوت من تسجيل — تجريبي</option></select></label>
+              <label>سرعة الكلام<select id="charVoiceSpeed"><option value="1">عادية</option><option value="1.1">أسرع 10٪</option><option value="1.15">أسرع 15٪</option><option value="1.2">أسرع 20٪</option><option value="1.3">أسرع 30٪</option></select></label>
+              <label id="charPresetRow">الصوت<select id="charVoicePreset"><option value="M1">رجالي 1</option><option value="M2">رجالي 2</option><option value="M3">رجالي 3</option><option value="M4">رجالي 4</option><option value="M5">رجالي 5</option><option value="F1">نسائي 1</option><option value="F2">نسائي 2</option><option value="F3">نسائي 3</option><option value="F4">نسائي 4</option><option value="F5">نسائي 5</option></select></label>
+            </div>
+            <div id="charClonePanel" class="character-clone" hidden>
+              <label>تجهيز الصوت <select id="charVoiceQuality"><option value="balanced">متوازن</option><option value="fast">أسرع — جرّب وضوح النطق</option></select></label>
+              <button id="charModelDownload" class="btn btn-ghost btn-small">تنزيل نموذج الصوت المخصص — 2.1 جيجابايت</button><p id="charModelState" class="note">تنزيل مرة واحدة، وبعدها يعمل دون إنترنت أو رسوم API. اختياري؛ الأصوات الجاهزة أسرع.</p>
+              <b>تسجيل واضح لشخص واحد</b><p class="note">الأفضل 6–12 ثانية، بدون موسيقى أو أصوات أخرى. نستخدم أول 15 ثانية كحد أقصى. المعالجة محلية؛ الصوت المستنسخ قد يكون أبطأ، والتشابه يحتاج تجربة.</p>
+              <label class="character-check"><input id="charConsent" type="checkbox"> هذا صوتي أو لدي موافقة صاحبه على استنساخه واستخدامه.</label>
+              <button id="charReference" class="btn btn-ghost btn-small">اختيار تسجيل صوتي</button><span id="charReferenceState" class="note">لم يُضف تسجيل بعد.</span>
+            </div>
+            <div class="character-actions"><button id="charSave" class="btn btn-ghost btn-small">حفظ الشخصية</button><button id="charPreview" class="btn btn-ghost btn-small">اسمع أول جملة</button><button id="charInstall" class="btn btn-solid btn-small">إضافة إلى اللعبة</button></div>
+            <p id="charStatus" class="note" role="status" aria-live="polite">ابدأ بصورة واسم، ثم اكتب صفات الشخصية.</p>
+            <audio id="charAudio" controls hidden></audio>
+            <div class="character-actions"><button id="charTrial" class="btn btn-ghost btn-small" disabled>جرّب هذه الشخصية وحدها</button><button id="charDisable" class="btn btn-ghost btn-small" disabled>إزالة من اللعبة</button></div>
+            <p class="note">أغلق اللعبة قبل الإضافة أو تغيير قائمة التجربة، ثم افتحها من جديد. الشخصية محلية؛ اللعب الجماعي يحتاج تثبيت نفس الشخصية عند المشاركين.</p>
+          </div>
+        </div>
+      </section>
       <!-- HOME -->
       <section id="home" class="page active">
         <div class="hero reveal" style="--d:0">
@@ -73,7 +122,7 @@
 
         <div id="banner" class="banner reveal" style="--d:1" hidden>
           <i class="ic" data-i="triangle-alert"></i>
-          <div><b>تحديث جديد للعبة</b><span>ملفاتها تغيّرت، طبّق التحسينات من جديد.</span></div>
+          <div><b id="reapplyTitle">تحديث جديد للعبة</b><span id="reapplyReason">ملفاتها تغيّرت، طبّق التحسينات من جديد.</span></div>
           <button id="btnReapply" class="btn btn-small btn-solid">طبّق الآن</button>
         </div>
 
@@ -94,8 +143,8 @@
 
           <section class="group reveal" style="--d:3">
             <header><i class="ic" data-i="bot"></i><h2>المتصلون</h2></header>
-            <label class="row"><div><b>ردود بالعربي</b><small>يخلي الذكاء الاصطناعي يتكلم عربي طبيعي ويخمّن قصدك.</small></div><input type="checkbox" class="sw" id="optPrompts"></label>
-            <label class="row"><div><b>ردود قصيرة</b><small>جملة وحدة قصيرة: صوت أسرع وتأخير أقل.</small></div><input type="checkbox" class="sw" id="optShort"></label>
+            <label class="row"><div><b>ردود بالعربي</b><small>ردود عربية تحافظ على شخصية المتصل، وتطلب توضيح التفاصيل غير المفهومة.</small></div><input type="checkbox" class="sw" id="optPrompts"></label>
+            <label class="row"><div><b>ردود قصيرة</b><small>جملة أو جملتين فقط. أطفئها إذا تبي ردود أطول وأكثر منطقية (التوليد الحالي سريع).</small></div><input type="checkbox" class="sw" id="optShort"></label>
             <div class="row row-field"><div><b>اللهجة</b></div>
               <select id="dialect">
                 <option value="msa">فصحى مبسّطة</option>
@@ -135,7 +184,7 @@
 
           <section class="group reveal" style="--d:5">
             <header><i class="ic" data-i="mic"></i><h2>التعرف على كلامك</h2></header>
-            <label class="row"><div><b>تعرف أدق (عربي + إنجليزي)</b><small>Whisper محلي على المعالج، يفهم الكلمات الإنجليزية الشائعة. أسرع بكثير من Whisper اللعبة.</small></div><input type="checkbox" class="sw" id="optStt"></label>
+            <label class="row"><div><b>التعرّف المحلي على الكلام</b><small>Cohere العربي أو Whisper؛ يعمل دون رصيد API بعد تنزيل النموذج.</small></div><input type="checkbox" class="sw" id="optStt"></label>
           </section>
 
           <section class="group reveal" style="--d:6">
@@ -152,6 +201,95 @@
           <summary><i class="ic" data-i="file-text"></i><span>سجل العمليات</span><i class="ic ic-s chev" data-i="chevron-down"></i></summary>
           <pre id="log" dir="ltr"></pre>
         </details>
+      </section>
+
+      <!-- MODELS -->
+      <section id="models" class="page">
+        <div class="page-head"><h1>النماذج</h1><p class="lead">كل النماذج تشتغل على جهازك (محلياً). اختر بنفسك، أو خلّ «تلقائي» يختار الأفضل لجهازك وينزّله.</p></div>
+
+        <div class="toolbar">
+          <button id="btnAutoModels" class="btn btn-primary btn-small"><i class="ic" data-i="wand-sparkles"></i><span>اختيار النماذج تلقائياً حسب جهازي</span></button>
+        </div>
+        <div id="autoCard" class="autocard" hidden></div>
+
+        <div class="grid">
+          <section class="group">
+            <header><i class="ic" data-i="mic"></i><h2>التعرف على كلامك</h2></header>
+            <div class="row row-field"><div><b>النموذج</b><small>اختر تلقائيًا أو جرّب نموذجًا مختلفًا على نفس تسجيلك. تبقى النماذج المنزّلة متاحة للتبديل دون إعادة تنزيلها.</small></div>
+              <select id="sttModel"></select>
+            </div>
+            <div id="sttCustomRow" class="row row-field" hidden><div><b>نموذج مخصص</b><small dir="ltr">Hugging Face repo أو مجلد: Systran/faster-whisper-large-v3</small></div>
+              <input id="sttCustom" type="text" dir="ltr" placeholder="owner/faster-whisper-model" class="field">
+            </div>
+            <div class="row"><div><b>تسريع Whisper على NVIDIA</b><small id="gpuStatus">تنزيل اختياري نحو 1.3 جيجابايت. Cohere يستخدم التسريع المضمّن ولا يحتاج هذا التنزيل.</small></div><button id="btnGpuSetup" class="btn btn-ghost btn-small">تجهيز</button></div>
+            <p id="sttDesc" class="plain"></p>
+            <label class="row"><div><b>تسجيل تشخيصي داخل اللعبة</b><small>يسجّل مستوى الصوت وزمن كل جملة (والنص وآخر 5 مقاطع على جهازك فقط). أوقفه عادةً، شغّله لما تبي تعرف ليش جملة ما انفهمت.</small></div><input type="checkbox" class="sw" id="optSttDebug"></label>
+            <div class="row row-field"><div><b>انتظار بعد السكوت</b><small>زد المهلة إذا كانت الجملة تنقطع أثناء الوقفات القصيرة. المهلة الأطول تؤخر الرد قليلًا.</small></div><select id="sttSilence"><option value="0.8">قصير · 0.8 ثانية</option><option value="1.25">متوازن · 1.25 ثانية</option><option value="1.7">وقفات أطول · 1.7 ثانية</option></select></div>
+            <label class="row"><div><b>استخدام إعداد الالتقاط القديم</b><small>للمقارنة فقط؛ يعطّل معالجة الصوت وكشف السكوت في المساعد.</small></div><input type="checkbox" class="sw" id="optSttOld"></label>
+          </section>
+
+          <section class="group">
+            <header><i class="ic" data-i="audio-lines"></i><h2>الصوت العربي</h2></header>
+            <div class="row row-field"><div><b>جودة الصوت</b><small>جودة أعلى = توليد أبطأ (يختار الأنسب لجهازك تلقائياً).</small></div>
+              <select id="ttsTier"></select>
+            </div>
+            <label class="row"><div><b>الصوت حسب جنس الشخصية</b><small>المرأة تتكلم بصوت امرأة والرجل بصوت رجل (يقرأ بيانات الشخصية من اللعبة).</small></div><input type="checkbox" class="sw" id="optGender"></label>
+          </section>
+
+          <section class="group group-wide">
+            <header><i class="ic" data-i="sparkles"></i><h2>أصواتي الخاصة</h2></header>
+            <p class="plain">أضف أصواتاً جديدة بصيغة Supertonic (ملف <code dir="ltr">.json</code>). سمّ الملف يبدأ بـ <code dir="ltr">F_</code> للصوت النسائي أو <code dir="ltr">M_</code> للرجالي، مثل <code dir="ltr">F_layla.json</code>. تُضاف لقائمة أصوات المتصلين عند «تطبيق التحسينات».</p>
+            <div class="toolbar" style="margin-top:0">
+              <button id="btnAddVoice" class="btn btn-ghost btn-small"><i class="ic" data-i="folder-open"></i><span>إضافة صوت</span></button>
+            </div>
+            <div id="voiceList" class="voices"></div>
+          </section>
+        </div>
+      </section>
+
+      <!-- MIC TEST -->
+      <section id="mic" class="page">
+        <div class="page-head"><h1>اختبار الميكروفون والتعرّف</h1><p class="lead">سجّل جملة تعرف نصّها، أو حمّل آخر جملة من اللعبة. استمع للصوت وقارن الكلمات والسرعة بين النماذج على التسجيل نفسه.</p></div>
+        <div class="grid">
+          <section class="group">
+            <header><i class="ic" data-i="mic"></i><h2>الميكروفون</h2></header>
+            <div class="row row-field"><div><b>الجهاز</b><small id="micInfo">اضغط «ابدأ الاختبار» وامنح الإذن.</small></div>
+              <select id="micDevice"></select>
+            </div>
+            <div class="row row-field"><div><b>نموذج التجربة</b><small>جرّب النماذج المثبّتة على التسجيل نفسه دون تغيير إعداد اللعبة.</small></div><select id="micModel"><option value="selected">النموذج المختار للأداة</option></select></div>
+            <div class="row row-field"><div><b>معالجة الصوت</b><small>قارن معالجة الصوت بالنُسخة القديمة على التسجيل نفسه.</small></div>
+              <select id="micProfile"><option value="improved">المحسّنة (الجديدة)</option><option value="baseline">القديمة (1.0.1)</option></select>
+            </div>
+            <div class="meter" aria-hidden="true"><i id="micBar"></i><span id="micPeakMark"></span></div>
+            <div class="meter-read"><span id="micDb">— dB</span><span id="micHint" class="note">قل شيئاً بصوتك العادي وراقب الشريط.</span></div>
+            <div class="toolbar" style="margin-top:6px">
+              <button id="btnMicStart" class="btn btn-ghost btn-small"><i class="ic" data-i="power"></i><span>ابدأ الاختبار</span></button>
+              <button id="btnMicRec" class="btn btn-solid btn-small" disabled><i class="ic" data-i="circle-dot"></i><span>سجّل عينة</span></button>
+              <button id="btnMicStop" class="btn btn-solid btn-small" hidden><i class="ic" data-i="square"></i><span>إيقاف</span></button>
+              <button id="btnMicGameClip" class="btn btn-ghost btn-small"><span>آخر جملة من اللعبة</span></button>
+            </div>
+          </section>
+
+          <section class="group">
+            <header><i class="ic" data-i="scan-search"></i><h2>النتيجة</h2></header>
+            <div id="micResult" class="micresult" hidden>
+              <div class="stat-row"><span>النص الذي فهمته الأداة</span><b id="rText" class="said" dir="auto">—</b></div>
+              <div class="stat-row"><span>زمن المعالجة</span><b id="rTime">—</b></div>
+              <div class="stat-row"><span>النموذج</span><b id="rModel" dir="ltr">—</b></div>
+              <div class="stat-row"><span>مستوى التسجيل</span><b id="rLevel">—</b></div>
+              <div class="stat-row"><span>تقدير النموذج (ليس نسبة دقة)</span><b id="rConf">—</b></div>
+              <div class="row row-field"><div><b>ما قلته فعلًا (اختياري)</b><small>اكتب الجملة لمقارنة النتيجة؛ كل شيء يبقى على جهازك.</small></div><input id="micExpected" class="field" type="text" placeholder="اكتب نفس الجملة التي سجلتها"></div>
+              <p id="micComparison" class="note"></p>
+              <p id="rVerdict" class="verdict"></p>
+            </div>
+            <p id="micEmpty" class="plain">سجّل عينة لتظهر النتيجة هنا.</p>
+            <div class="toolbar" style="margin-top:6px">
+              <button id="btnMicPlay" class="btn btn-ghost btn-small" disabled><i class="ic" data-i="headphones"></i><span>استمع للتسجيل</span></button>
+              <button id="btnMicAgain" class="btn btn-ghost btn-small" disabled><i class="ic" data-i="refresh-cw"></i><span>أعد التعرّف</span></button>
+            </div>
+            <p class="note">تسجيل الميكروفون هنا يبقى في الذاكرة فقط. مقاطع التشخيص الاختيارية تبقى في مجلد اللعبة، ولا تُرفع للإنترنت.</p>
+          </section>
+        </div>
       </section>
 
       <!-- STRINGS -->
@@ -193,6 +331,8 @@
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <script src="dev-mock.js"></script>
+  <script src="update-state.js"></script>
   <script src="app.js"></script>
+  <script src="characters-ui.js"></script>
 </body>
 </html>

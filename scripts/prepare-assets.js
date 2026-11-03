@@ -10,7 +10,7 @@ const icons = [
   'play', 'folder-open', 'search', 'check', 'x', 'loader-circle', 'download', 'external-link', 'life-buoy', 'info',
   'settings-2', 'pencil-line', 'cpu', 'gamepad-2', 'refresh-cw', 'triangle-alert', 'heart', 'wand-sparkles',
   'scan-search', 'file-text', 'house', 'circle-check', 'circle-alert', 'save', 'undo-2', 'bot', 'audio-lines', 'rocket',
-  'chevron-down', 'power',
+  'chevron-down', 'power', 'circle-dot', 'square', 'headphones', 'mic-vocal',
 ];
 const fonts = {
   '@fontsource/ibm-plex-sans-arabic': [400, 500, 600, 700].flatMap((w) => ['arabic', 'latin'].map((s) => `ibm-plex-sans-arabic-${s}-${w}-normal.woff2`)),
@@ -19,6 +19,10 @@ const fonts = {
 
 fs.mkdirSync(path.join(vendor, 'icons'), { recursive: true });
 fs.mkdirSync(path.join(vendor, 'fonts'), { recursive: true });
+fs.mkdirSync(path.join(vendor, 'licenses'), { recursive: true });
+for (const pkg of ['lucide-static', ...Object.keys(fonts)]) {
+  fs.copyFileSync(path.join(root, 'node_modules', pkg, 'LICENSE'), path.join(vendor, 'licenses', pkg.replace(/[@/]/g, '_') + '.txt'));
+}
 
 for (const name of icons) {
   const src = path.join(root, 'node_modules', 'lucide-static', 'icons', `${name}.svg`);
